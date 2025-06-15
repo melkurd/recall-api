@@ -1,7 +1,7 @@
 import os, time, requests, dotenv, pandas as pd
 
 dotenv.load_dotenv()
-BASE_URL  = os.getenv("SUPABASE_URL")           # e.g. https://db.gttiunvrapfjxilkkjsj.supabase.co
+BASE_URL  = os.getenv("SUPABASE_URL")           # https://db.gttiunvrapfjxilkkjsj.supabase.co
 SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 assert BASE_URL and SERVICE_KEY, "Missing SUPABASE_URL or SUPABASE_SERVICE_KEY"
 
@@ -14,9 +14,8 @@ def fetch(year: int, skip: int) -> list[dict]:
     r   = requests.get(url, headers=HEAD, timeout=30)
     if r.status_code == 404:
         return []
-    if r.status_code == 429:            # throttled: wait & retry
-        time.sleep(2)
-        return fetch(year, skip)
+    if r.status_code == 429:
+        time.sleep(2); return fetch(year, skip)
     r.raise_for_status()
     return r.json()["results"]
 
@@ -41,11 +40,14 @@ for year in range(2002, 2025):
         df = pd.DataFrame(rows)
         df.columns = [c.lower() for c in df.columns]
 
+        # rename to match table column
+        df = df.rename(columns={"classification": "recall_classification"})
+
         batch = df[
             ["recall_number",
              "event_id",
              "recall_initiation_date",
-             "classification",
+             "recall_classification",
              "product_description"]
         ].to_dict("records")
 
@@ -56,6 +58,6 @@ for year in range(2002, 2025):
         if inserted % 5000 == 0:
             print(f"...{inserted} rows processed so far (through {year})")
 
-        time.sleep(0.25)   # stay well under rate limit
+        time.sleep(0.25)
 
 print(f"✓ Finished. Processed {inserted} rows total.")
