@@ -1,0 +1,26 @@
+name: weekly-fda-device-recall-refresh
+
+on:
+  schedule:
+    - cron: "0 9 * * FRI"     # every Friday 09:00 UTC  (3 am Dallas time)
+  workflow_dispatch:          # adds a “Run workflow” button in GitHub UI
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests psycopg2-binary pandas python-dotenv
+
+      - name: Run loader
+        env:
+          SUPABASE_CONN: ${{ secrets.SUPABASE_CONN }}
+        run: python load_sample.py
